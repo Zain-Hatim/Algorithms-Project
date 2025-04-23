@@ -1,0 +1,33 @@
+{
+  "weight": 13.0,
+  "partitions": [
+    [
+      2,
+      3
+    ],
+    [
+      4
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "all_min_cuts": [
+    [
+      [
+        2,
+        3
+      ],
+      [
+        4
+      ],
+      [
+        0,
+        1
+      ]
+    ]
+  ],
+  "runtime": 0.0062503814697265625,
+  "complexity": "O(n\u00b2 log\u00b2 n) = O(5\u00b2 log\u00b2 5) with sparsification"
+}

@@ -1,0 +1,9 @@
+timestamp,graph_size,edge_count,k,cut_weight,trial_count,runtime_ms,algorithm,sparsified,parallel,adaptive
+2025-04-23T12:20:52.853588,5,7,3,13.0,20,15.978336334228516,recursive,True,False,False
+2025-04-23T12:23:30.610354,5,7,3,13.0,20,2.231121063232422,recursive,True,False,False
+2025-04-23T12:26:21.139213,5,7,3,13.0,20,0.0,recursive,True,False,False
+2025-04-23T12:27:47.298417,5,7,3,13.0,20,0.0,basic,True,False,False
+2025-04-23T12:28:05.968610,5,7,3,13.0,100,10.282278060913086,recursive,True,False,False
+2025-04-23T12:28:17.430951,5,7,3,13.0,100,4.012584686279297,basic,True,False,False
+2025-04-23T12:29:26.370961,5,7,3,13.0,20,0.0,recursive,True,False,False
+2025-04-23T12:29:50.576736,5,7,3,13.0,20,0.0,basic,True,False,False

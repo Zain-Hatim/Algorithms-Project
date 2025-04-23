@@ -1,7 +1,8 @@
 import networkx as nx
 import numpy as np
-from typing import Dict, List, Tuple, Union, Set, Optional
+from typing import Dict, List, Tuple, Union, Optional
 import random
+from typing import Set  # Explicitly import Set
 
 class GraphBuilder:
     def __init__(self, n: int, p: float, seed: int = None):
@@ -264,4 +265,111 @@ class GraphBuilder:
                     for v in partition[j]:
                         if graph.has_edge(u, v):
                             cut_weight += graph[u][v]['weight']
-        return cut_weight 
+        return cut_weight
+
+def generate_random_graph(n: int, p: float, weight_range: Tuple[float, float] = (1.0, 10.0)) -> nx.Graph:
+    """Generate a random Erdős-Rényi graph."""
+    graph = nx.erdos_renyi_graph(n, p)
+    for u, v in graph.edges():
+        weight = random.uniform(weight_range[0], weight_range[1])
+        graph[u][v]['weight'] = weight
+    return graph
+
+def generate_grid_graph(rows: int, cols: int, weight_range: Tuple[float, float] = (1.0, 10.0)) -> nx.Graph:
+    """Generate a grid graph with random weights."""
+    graph = nx.grid_2d_graph(rows, cols)
+    # Convert to integer node labels
+    mapping = {node: i for i, node in enumerate(graph.nodes())}
+    graph = nx.relabel_nodes(graph, mapping)
+    
+    for u, v in graph.edges():
+        weight = random.uniform(weight_range[0], weight_range[1])
+        graph[u][v]['weight'] = weight
+    return graph
+
+def generate_star_graph(n: int, weight_range: Tuple[float, float] = (1.0, 10.0)) -> nx.Graph:
+    """Generate a star graph with n nodes."""
+    graph = nx.star_graph(n-1)
+    for u, v in graph.edges():
+        weight = random.uniform(weight_range[0], weight_range[1])
+        graph[u][v]['weight'] = weight
+    return graph
+
+def generate_cycle_graph(n: int, weight_range: Tuple[float, float] = (1.0, 10.0)) -> nx.Graph:
+    """Generate a cycle graph with n nodes."""
+    graph = nx.cycle_graph(n)
+    for u, v in graph.edges():
+        weight = random.uniform(weight_range[0], weight_range[1])
+        graph[u][v]['weight'] = weight
+    return graph
+
+def generate_complete_graph(n: int, weight_range: Tuple[float, float] = (1.0, 10.0)) -> nx.Graph:
+    """Generate a complete graph with n nodes."""
+    graph = nx.complete_graph(n)
+    for u, v in graph.edges():
+        weight = random.uniform(weight_range[0], weight_range[1])
+        graph[u][v]['weight'] = weight
+    return graph
+
+def generate_barbell_graph(n: int, weight_range: Tuple[float, float] = (1.0, 10.0)) -> nx.Graph:
+    """Generate a barbell graph with two complete graphs connected by a path."""
+    graph = nx.barbell_graph(n//2, n//2)
+    for u, v in graph.edges():
+        weight = random.uniform(weight_range[0], weight_range[1])
+        graph[u][v]['weight'] = weight
+    return graph
+
+def generate_ladder_graph(n: int, weight_range: Tuple[float, float] = (1.0, 10.0)) -> nx.Graph:
+    """Generate a ladder graph with n rungs."""
+    graph = nx.ladder_graph(n)
+    for u, v in graph.edges():
+        weight = random.uniform(weight_range[0], weight_range[1])
+        graph[u][v]['weight'] = weight
+    return graph
+
+def save_graph_to_file(graph: nx.Graph, filename: str) -> None:
+    """Save a graph to a file in edge list format."""
+    with open(filename, 'w') as f:
+        for u, v, data in graph.edges(data=True):
+            f.write(f"{u} {v} {data['weight']:.2f}\n")
+
+def generate_example_graphs():
+    """Generate and save various example graphs."""
+    # Small random graph
+    graph = generate_random_graph(10, 0.3)
+    save_graph_to_file(graph, 'data/small_random.txt')
+    
+    # Medium random graph
+    graph = generate_random_graph(20, 0.2)
+    save_graph_to_file(graph, 'data/medium_random.txt')
+    
+    # Large random graph
+    graph = generate_random_graph(50, 0.1)
+    save_graph_to_file(graph, 'data/large_random.txt')
+    
+    # Grid graph
+    graph = generate_grid_graph(5, 5)
+    save_graph_to_file(graph, 'data/grid.txt')
+    
+    # Star graph
+    graph = generate_star_graph(10)
+    save_graph_to_file(graph, 'data/star.txt')
+    
+    # Cycle graph
+    graph = generate_cycle_graph(15)
+    save_graph_to_file(graph, 'data/cycle.txt')
+    
+    # Complete graph
+    graph = generate_complete_graph(8)
+    save_graph_to_file(graph, 'data/complete.txt')
+    
+    # Barbell graph
+    graph = generate_barbell_graph(20)
+    save_graph_to_file(graph, 'data/barbell.txt')
+    
+    # Ladder graph
+    graph = generate_ladder_graph(10)
+    save_graph_to_file(graph, 'data/ladder.txt')
+
+if __name__ == '__main__':
+    generate_example_graphs() 
