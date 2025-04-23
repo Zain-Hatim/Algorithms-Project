@@ -19,7 +19,8 @@ def setup_logging():
     """Set up logging configuration."""
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
     )
 
 def calculate_complexity(n, k, variant, sparsify):
@@ -117,26 +118,39 @@ def main():
     args = parser.parse_args()
     setup_logging()
     
+    logging.info("=== Starting Karger-Stein Algorithm Execution ===")
+    logging.info(f"Algorithm variant: {args.variant}")
+    logging.info(f"Number of partitions (k): {args.k}")
+    logging.info(f"Using sparsification: {args.sparsify}")
+    
     # Create unique run directory
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     run_dir = Path(f'results/run_{timestamp}')
     run_dir.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Created run directory: {run_dir}")
     
     # Create images directory if visualization is requested
     if args.visualize:
         images_dir = run_dir / 'images'
         images_dir.mkdir(exist_ok=True)
+        logging.info(f"Created visualization directory: {images_dir}")
     
     # Set up log file in the run directory
     if not args.log_file:
         args.log_file = run_dir / 'runtime_logs.csv'
     else:
         args.log_file = run_dir / Path(args.log_file).name
+    logging.info(f"Performance logs will be written to: {args.log_file}")
     
     # Load graph
+    logging.info(f"Loading input graph from: {args.input}")
     graph = load_graph_from_file(args.input)
     n = graph.number_of_nodes()
     m = graph.number_of_edges()
+    logging.info(f"Graph loaded successfully:")
+    logging.info(f"  - Number of vertices: {n}")
+    logging.info(f"  - Number of edges: {m}")
+    logging.info(f"  - Average degree: {2*m/n:.2f}")
     
     # Calculate theoretical complexity
     complexity = calculate_complexity(n, args.k, args.variant, args.sparsify)
@@ -144,62 +158,84 @@ def main():
     
     # Initialize performance logger
     logger = PerformanceLogger(str(args.log_file))
+    logging.info("Performance logger initialized")
     
     # Visualize original graph if requested
     if args.visualize:
+        logging.info("Generating visualization of original graph...")
         visualize_graph(graph, output_path=str(images_dir / 'original_graph.png'))
+        logging.info("Original graph visualization saved")
     
     # Run algorithm
+    logging.info("\n=== Starting Algorithm Execution ===")
+    num_trials = args.trials or int(n * n * math.log(n))
+    logging.info(f"Number of trials to run: {num_trials}")
+    
     start_time = time.time()
     karger = KargerStein(graph, args.k)
+    logging.info("KargerStein instance initialized")
     
     if args.variant == 'basic':
+        logging.info("Running basic Karger-Stein algorithm...")
         result = karger.find_min_k_cut(args.trials)
     else:  # recursive
+        logging.info("Running recursive Karger-Stein algorithm...")
         result = karger.find_min_k_cut_recursive(args.k, args.trials)
     
     runtime = time.time() - start_time
+    logging.info("\n=== Algorithm Execution Complete ===")
+    logging.info(f"Total runtime: {runtime:.2f} seconds")
+    
+    # Log detailed results
+    logging.info("\n=== Results Summary ===")
+    logging.info(f"Minimum {args.k}-cut weight: {result['weight']}")
+    logging.info(f"Number of unique minimum cuts found: {len(result['all_min_cuts'])}")
+    logging.info("\nPartition sizes:")
+    for i, partition in enumerate(result['partitions'], 1):
+        logging.info(f"  Partition {i}: {len(partition)} vertices")
     
     # Visualize result if requested
     if args.visualize:
+        logging.info("\nGenerating visualization of k-cut result...")
         visualize_graph(graph, partitions=result['partitions'], 
                        output_path=str(images_dir / 'k_cut_result.png'),
                        complexity=complexity)
+        logging.info("K-cut result visualization saved")
     
     # Log performance
-    logger.log_trial({
+    perf_data = {
         'graph_size': n,
         'edge_count': m,
         'k': args.k,
         'cut_weight': result['weight'],
-        'trial_count': args.trials or int(n * n * math.log(n)),
+        'trial_count': num_trials,
         'runtime_ms': runtime * 1000,
         'algorithm': args.variant,
         'sparsified': args.sparsify,
         'parallel': False,
         'adaptive': False,
         'complexity': complexity
-    })
+    }
+    logger.log_trial(perf_data)
+    logging.info("Performance data logged")
     
     # Save results
     if args.output:
         output_path = run_dir / Path(args.output).name
+        logging.info(f"\nSaving detailed results to: {output_path}")
         with open(output_path, 'w') as f:
             json.dump({
                 'weight': result['weight'],
                 'partitions': [list(part) for part in result['partitions']],
                 'all_min_cuts': [[list(part) for part in cut] for cut in result['all_min_cuts']],
                 'runtime': runtime,
-                'complexity': complexity
+                'complexity': complexity,
+                'performance_data': perf_data
             }, f, indent=2)
+        logging.info("Results saved successfully")
     
-    # Print summary
-    logging.info(f"Found minimum {args.k}-cut with weight {result['weight']}")
-    logging.info(f"Runtime: {runtime:.2f} seconds")
-    logging.info(f"Number of minimum cuts found: {len(result['all_min_cuts'])}")
-    if args.visualize:
-        logging.info(f"Visualizations saved in {images_dir}")
-    logging.info(f"Results saved in {run_dir}")
+    logging.info(f"\nAll run artifacts saved in: {run_dir}")
+    logging.info("=== Execution Complete ===\n")
 
 if __name__ == '__main__':
     main() 
