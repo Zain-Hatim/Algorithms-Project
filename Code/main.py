@@ -49,9 +49,22 @@ def visualize_graph(graph, partitions=None, output_path=None, complexity=None):
     if partitions:
         # Find edges that cross partitions
         for u, v in graph.edges():
-            u_partition = next(i for i, part in enumerate(partitions) if u in part)
-            v_partition = next(i for i, part in enumerate(partitions) if v in part)
-            if u_partition != v_partition:
+            # Find which partition contains each node (if any)
+            u_partition = -1
+            v_partition = -1
+            for i, part in enumerate(partitions):
+                if u in part:
+                    u_partition = i
+                if v in part:
+                    v_partition = i
+                if u_partition != -1 and v_partition != -1:
+                    break
+            
+            # If either node is not in any partition, consider it a regular edge
+            if u_partition == -1 or v_partition == -1:
+                regular_edges.append((u, v))
+            # If nodes are in different partitions, it's a cut edge
+            elif u_partition != v_partition:
                 cut_edges.append((u, v))
             else:
                 regular_edges.append((u, v))
@@ -70,10 +83,19 @@ def visualize_graph(graph, partitions=None, output_path=None, complexity=None):
     
     # Draw nodes with partition colors if provided
     if partitions:
-        colors = plt.cm.rainbow(np.linspace(0, 1, len(partitions)))
+        colors = plt.cm.rainbow(np.linspace(0, 1, len(partitions) + 1))  # +1 for unassigned nodes
+        # Draw nodes in partitions
         for i, partition in enumerate(partitions):
-            nx.draw_networkx_nodes(graph, pos, nodelist=partition, 
-                                 node_color=[colors[i]], node_size=500)
+            if partition:  # Only draw non-empty partitions
+                nx.draw_networkx_nodes(graph, pos, nodelist=list(partition), 
+                                     node_color=[colors[i]], node_size=500)
+        
+        # Draw unassigned nodes in gray
+        assigned_nodes = set().union(*[p for p in partitions if p])
+        unassigned_nodes = set(graph.nodes()) - assigned_nodes
+        if unassigned_nodes:
+            nx.draw_networkx_nodes(graph, pos, nodelist=list(unassigned_nodes),
+                                 node_color='gray', node_size=500)
     else:
         nx.draw_networkx_nodes(graph, pos, node_size=500)
     
@@ -84,7 +106,7 @@ def visualize_graph(graph, partitions=None, output_path=None, complexity=None):
     edge_labels = {(u, v): f"{d['weight']:.1f}" for u, v, d in graph.edges(data=True)}
     nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
     
-    # Add legend for cut edges
+    # Add legend for cut edges and unassigned nodes
     if cut_edges:
         plt.plot([], [], 'r--', label='Cut Edges', linewidth=2)
         plt.legend()
@@ -118,7 +140,7 @@ def main():
     args = parser.parse_args()
     setup_logging()
     
-    logging.info("=== Starting Karger-Stein Algorithm Execution ===")
+    logging.info("=== Starting K-Cut Algorithm Execution ===")
     logging.info(f"Algorithm variant: {args.variant}")
     logging.info(f"Number of partitions (k): {args.k}")
     logging.info(f"Using sparsification: {args.sparsify}")
@@ -152,10 +174,6 @@ def main():
     logging.info(f"  - Number of edges: {m}")
     logging.info(f"  - Average degree: {2*m/n:.2f}")
     
-    # Calculate theoretical complexity
-    complexity = calculate_complexity(n, args.k, args.variant, args.sparsify)
-    logging.info(f"Theoretical Runtime Complexity: {complexity}")
-    
     # Initialize performance logger
     logger = PerformanceLogger(str(args.log_file))
     logging.info("Performance logger initialized")
@@ -166,8 +184,11 @@ def main():
         visualize_graph(graph, output_path=str(images_dir / 'original_graph.png'))
         logging.info("Original graph visualization saved")
     
-    # Run algorithm
-    logging.info("\n=== Starting Algorithm Execution ===")
+    # Run Karger-Stein algorithm
+    logging.info("\n=== Starting Karger-Stein Algorithm ===")
+    complexity = calculate_complexity(n, args.k, args.variant, args.sparsify)
+    logging.info(f"Theoretical Runtime Complexity: {complexity}")
+    
     num_trials = args.trials or int(n * n * math.log(n))
     logging.info(f"Number of trials to run: {num_trials}")
     
@@ -183,24 +204,8 @@ def main():
         result = karger.find_min_k_cut_recursive(args.k, args.trials)
     
     runtime = time.time() - start_time
-    logging.info("\n=== Algorithm Execution Complete ===")
+    logging.info("\n=== Karger-Stein Algorithm Complete ===")
     logging.info(f"Total runtime: {runtime:.2f} seconds")
-    
-    # Log detailed results
-    logging.info("\n=== Results Summary ===")
-    logging.info(f"Minimum {args.k}-cut weight: {result['weight']}")
-    logging.info(f"Number of unique minimum cuts found: {len(result['all_min_cuts'])}")
-    logging.info("\nPartition sizes:")
-    for i, partition in enumerate(result['partitions'], 1):
-        logging.info(f"  Partition {i}: {len(partition)} vertices")
-    
-    # Visualize result if requested
-    if args.visualize:
-        logging.info("\nGenerating visualization of k-cut result...")
-        visualize_graph(graph, partitions=result['partitions'], 
-                       output_path=str(images_dir / 'k_cut_result.png'),
-                       complexity=complexity)
-        logging.info("K-cut result visualization saved")
     
     # Log performance
     perf_data = {
@@ -219,18 +224,34 @@ def main():
     logger.log_trial(perf_data)
     logging.info("Performance data logged")
     
+    # Visualize result if requested
+    if args.visualize:
+        logging.info("\nGenerating visualization of Karger-Stein result...")
+        visualize_graph(graph, partitions=result['partitions'], 
+                      output_path=str(images_dir / 'karger_stein_result.png'),
+                      complexity=complexity)
+        logging.info("Karger-Stein result visualization saved")
+    
+    # Print summary
+    logging.info("\n=== Results Summary ===")
+    logging.info(f"Cut weight: {result['weight']:.6f}")
+    logging.info(f"Runtime: {runtime:.3f} seconds")
+    logging.info(f"Theoretical Complexity: {complexity}")
+    logging.info(f"Number of unique minimum cuts found: {len(result['all_min_cuts'])}")
+    
     # Save results
     if args.output:
         output_path = run_dir / Path(args.output).name
         logging.info(f"\nSaving detailed results to: {output_path}")
         with open(output_path, 'w') as f:
             json.dump({
-                'weight': result['weight'],
-                'partitions': [list(part) for part in result['partitions']],
-                'all_min_cuts': [[list(part) for part in cut] for cut in result['all_min_cuts']],
-                'runtime': runtime,
-                'complexity': complexity,
-                'performance_data': perf_data
+                'results': {
+                    'weight': result['weight'],
+                    'partitions': [list(part) for part in result['partitions']],
+                    'all_min_cuts': [[list(part) for part in cut] for cut in result['all_min_cuts']],
+                    'runtime': runtime,
+                    'complexity': complexity
+                }
             }, f, indent=2)
         logging.info("Results saved successfully")
     
