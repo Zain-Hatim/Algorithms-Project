@@ -26,13 +26,13 @@ def setup_logging():
 def calculate_complexity(n, k, variant, sparsify):
     """Calculate theoretical runtime complexity of the algorithm."""
     if variant == 'basic':
-        # Basic Karger-Stein: O(n^k)
-        complexity = f"O(n^k) = O({n}^{k})"
+        # Basic Karger-Stein: O(n² log n)
+        complexity = f"O(n² log n) = O({n}² log {n})"
         if sparsify:
             complexity += " with sparsification"
     else:  # recursive
-        # Recursive Karger-Stein: O(n^k)
-        complexity = f"O(n^k) = O({n}^{k})"
+        # Recursive Karger-Stein: O(n² log² n)
+        complexity = f"O(n² log² n) = O({n}² log² {n})"
         if sparsify:
             complexity += " with sparsification"
     return complexity

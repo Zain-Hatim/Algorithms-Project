@@ -1,0 +1,2 @@
+timestamp,graph_size,edge_count,k,cut_weight,trial_count,runtime_ms,algorithm,sparsified,parallel,adaptive
+2025-04-23T15:32:30.042496,5,7,3,17.0,100,82.39483833312988,recursive,True,False,False
